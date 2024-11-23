@@ -6,6 +6,11 @@ openai.api_key = "sk-proj-FrDo4_Xxm9ziXa1WvQ8W-xJDslxHdZPrl91uDc6N34oqQFgUwlydHC
 
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    return "Hello, Render!"
+
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     try:
