@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Name - Personal Website</title>
+    <title>Emil Sean Skovgaard - Personal Website</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -44,6 +44,60 @@
         h2 {
             color: #4CAF50;
         }
+
+        /* Chat Interface Styles */
+        #chat-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+
+        .message {
+            margin: 5px 0;
+        }
+
+        .user {
+            text-align: right;
+            color: #4CAF50;
+        }
+
+        .bot {
+            text-align: left;
+            color: #333;
+        }
+
+        #user-input {
+            width: calc(100% - 100px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #send-button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #send-button:hover {
+            background-color: #45a049;
+        }
     </style>
 </head>
 
@@ -58,6 +112,7 @@
         <a href="#about">Welcome</a>
         <a href="#skills">Skills</a>
         <a href="#contact">Contact</a>
+        <a href="#chat">Chat</a>
     </nav>
 
     <section id="about">
@@ -76,7 +131,6 @@
         </ul>
     </section>
 
-
     <section id="contact">
         <h2>Contact</h2>
         <p>You can reach me at:</p>
@@ -85,6 +139,51 @@
         </p>
     </section>
 
+    <section id="chat">
+        <h2>Chat with Me</h2>
+        <div id="chat-container">
+            <div id="messages"></div>
+            <input id="user-input" type="text" placeholder="Type your message..." />
+            <button id="send-button" onclick="sendMessage()">Send</button>
+        </div>
+    </section>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('user-input');
+
+        function sendMessage() {
+            const userMessage = userInput.value;
+            if (!userMessage) return;
+
+            // Display user's message
+            appendMessage(userMessage, 'user');
+            userInput.value = '';
+
+            // Call the backend to get a response
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage(data.reply, 'bot');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    appendMessage('Oops! Something went wrong.', 'bot');
+                });
+        }
+
+        function appendMessage(message, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
+        }
+    </script>
 
 </body>
 
