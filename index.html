@@ -161,7 +161,7 @@
             userInput.value = '';
 
             // Call the backend to get a response
-            fetch('/api/chat', {
+            fetch('https://s235282-github-io.onrender.com', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: userMessage })
