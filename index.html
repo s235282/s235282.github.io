@@ -121,13 +121,12 @@
     </section>
 
     <section id="skills">
-        <h2>Skills</h2>
+        <h2>Languages</h2>
         <ul>
-            <li>HTML</li>
-            <li>CSS</li>
-            <li>JavaScript</li>
-            <li>Web3</li>
-            <li>Lying</li>
+            <li>Python </li>
+            <li>Java</li>
+            <li>F#</li>
+            <li>Danish, English, French (basic)</li>
         </ul>
     </section>
 
@@ -140,7 +139,7 @@
     </section>
 
     <section id="chat">
-        <h2>Chat with Me</h2>
+        <h2>Still curious about my background, experience, interests? - Ask Promoto</h2>
         <div id="chat-container">
             <div id="messages"></div>
             <input id="user-input" type="text" placeholder="Type your message..." />
@@ -183,6 +182,14 @@
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
         }
+
+        // Add event listener for Enter key press
+        userInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();  // Prevent form submission if inside a form
+                sendMessage();  // Call sendMessage when Enter is pressed
+            }
+        });
     </script>
 
 </body>
