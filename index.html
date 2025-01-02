@@ -195,3 +195,227 @@
 </body>
 
 </html>
+Changes made:
+Enter Key Listener:
+Added an event listener on the input field (#user-input) to listen for the "Enter" key press.
+When the "Enter" key is pressed, the sendMessage() function is called, and it prevents the default action (which might be form submission).
+Now, whether the user presses the "Enter" key or clicks the "Send" button, the message will be sent.
+
+Let me know if you need anything else!
+
+
+
+
+
+
+Vous avez dit :
+Actually can we maybe changed the colors to green and black? Instead of the current green and white
+ChatGPT a dit :
+ChatGPT
+Sure! I've updated the color scheme to use green and black instead of the current green and white. Below is the updated HTML document with the new color changes:
+
+html
+Copier le code
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emil Sean Skovgaard - Personal Website</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #333; /* Dark background */
+            color: #fff; /* White text */
+        }
+
+        header {
+            background-color: #4CAF50; /* Green header */
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        nav {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        nav a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: #4CAF50; /* Green links */
+            font-weight: bold;
+        }
+
+        nav a:hover {
+            color: #fff; /* White on hover */
+        }
+
+        section {
+            margin: 20px;
+            padding: 20px;
+            background-color: #444; /* Dark background for sections */
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #4CAF50; /* Green headings */
+        }
+
+        /* Chat Interface Styles */
+        #chat-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #555; /* Dark background for chat */
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        #messages {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #666; /* Dark border */
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #333; /* Dark background for messages */
+            border-radius: 5px;
+        }
+
+        .message {
+            margin: 5px 0;
+        }
+
+        .user {
+            text-align: right;
+            color: #4CAF50; /* Green for user messages */
+        }
+
+        .bot {
+            text-align: left;
+            color: #fff; /* White for bot messages */
+        }
+
+        #user-input {
+            width: calc(100% - 100px);
+            padding: 10px;
+            border: 1px solid #666; /* Dark border */
+            border-radius: 5px;
+            background-color: #444; /* Dark input field */
+            color: white; /* White text */
+        }
+
+        #send-button {
+            padding: 10px 20px;
+            background-color: #4CAF50; /* Green button */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #send-button:hover {
+            background-color: #45a049; /* Darker green on hover */
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>Emil Sean Skovgaard</h1>
+        <p>Welcome to my personal website!</p>
+    </header>
+
+    <nav>
+        <a href="#about">Welcome</a>
+        <a href="#skills">Skills</a>
+        <a href="#contact">Contact</a>
+        <a href="#chat">Chat</a>
+    </nav>
+
+    <section id="about">
+        <h2>Welcome</h2>
+        <p>Hello and welcome to my website :)</p>
+    </section>
+
+    <section id="skills">
+        <h2>Languages</h2>
+        <ul>
+            <li>Python </li>
+            <li>Java</li>
+            <li>F#</li>
+            <li>Danish, English, French (basic)</li>
+        </ul>
+    </section>
+
+    <section id="contact">
+        <h2>Contact</h2>
+        <p>You can reach me at:</p>
+        <p>Email:
+            <a href="mailto:emil467q@gmail.com">emil467q@gmail.com</a>
+        </p>
+    </section>
+
+    <section id="chat">
+        <h2>Still curious about my background, experience, interests? - Ask Promoto</h2>
+        <div id="chat-container">
+            <div id="messages"></div>
+            <input id="user-input" type="text" placeholder="Type your message..." />
+            <button id="send-button" onclick="sendMessage()">Send</button>
+        </div>
+    </section>
+
+    <script>
+        const messagesDiv = document.getElementById('messages');
+        const userInput = document.getElementById('user-input');
+
+        function sendMessage() {
+            const userMessage = userInput.value;
+            if (!userMessage) return;
+
+            // Display user's message
+            appendMessage(userMessage, 'user');
+            userInput.value = '';
+
+            // Call the backend to get a response
+            fetch('https://s235282-github-io.onrender.com', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: userMessage })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage(data.reply, 'bot');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    appendMessage('Oops! Something went wrong.', 'bot');
+                });
+        }
+
+        function appendMessage(message, sender) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
+        }
+
+        // Add event listener for Enter key press
+        userInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();  // Prevent form submission if inside a form
+                sendMessage();  // Call sendMessage when Enter is pressed
+            }
+        });
+    </script>
+
+</body>
+
+</html>
