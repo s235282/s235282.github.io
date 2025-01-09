@@ -171,7 +171,7 @@
             })
                 .then(response => response.json())
                 .then(data => {
-                    appendMessage(data.reply, 'bot');
+                    appendMessage(data.response, 'bot');
                 })
                 .catch(error => {
                     console.error('Error:', error);
