@@ -104,6 +104,11 @@
         #send-button:hover {
             background-color: #8e44ad; /* Darker purple on hover */
         }
+
+        .emoji {
+            font-size: 1.5em; /* Larger size for emojis */
+            vertical-align: middle; /* Align emojis properly with text */
+        }
     </style>
 </head>
 
@@ -111,44 +116,44 @@
 
     <header>
         <h1>Emil Sean Skovgaard</h1>
-        <p>Welcome to my personal website!</p>
+        <p>Welcome to my personal website! 😊🌟</p>
     </header>
 
     <nav>
         <a href="#About">Welcome</a>
+        <a href="#Ask">Ask my agent</a>
         <a href="#Languages">Languages</a>
         <a href="#Contact">Contact</a>
-        <a href="#Ask my agent">Ask my agent</a>
     </nav>
 
     <section id="about">
         <h2>Welcome</h2>
-        <p>Hello and welcome to my website :)</p>
+        <p>Hello and welcome to my website 😊🌟!</p>
     </section>
 
-    <section id="Languages">
-        <h2>Languages</h2>
-        <ul>
-            <li>Python </li>
-            <li>Java</li>
-            <li>F#</li>
-            <li>Danish, English, French (basic)</li>
-        </ul>
-    </section>
-
-    <section id="contact">
-        <h2>Contact</h2>
-        <p>You can reach me at:</p>
-        <p>Email: emil467q@gmail.com </p>
-    </section>
-
-    <section id="Ask my agent">
-        <h2>Curious about my background, experience, interests? - Ask my agent (initial response time around 60 seconds)</h2>
+    <section id="Ask">
+        <h2>Curious about my background, experience, interests? 🤔 - Ask my agent (initial response time around 60 seconds)</h2>
         <div id="chat-container">
             <div id="messages"></div>
             <input id="user-input" type="text" placeholder="Type your message..." />
             <button id="send-button" onclick="sendMessage()">Send</button>
         </div>
+    </section>
+
+    <section id="Languages">
+        <h2>Languages 🌍</h2>
+        <ul>
+            <li>Python 🐍</li>
+            <li>Java ☕</li>
+            <li>F# 🎵</li>
+            <li>Danish, English, French (basic) 🗣️</li>
+        </ul>
+    </section>
+
+    <section id="contact">
+        <h2>Contact 📬</h2>
+        <p>You can reach me at:</p>
+        <p>Email: emil467q@gmail.com 📧</p>
     </section>
 
     <script>
@@ -182,6 +187,12 @@
         function appendMessage(message, sender) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', sender);
+
+            // Add an emoji to bot responses
+            if (sender === 'bot') {
+                message += ' 🤖';
+            }
+
             messageDiv.textContent = message;
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
