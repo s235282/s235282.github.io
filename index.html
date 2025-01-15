@@ -188,11 +188,6 @@
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', sender);
 
-            // Add an emoji to bot responses
-            if (sender === 'bot') {
-                message += ' 🤖';
-            }
-
             messageDiv.textContent = message;
             messagesDiv.appendChild(messageDiv);
             messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
