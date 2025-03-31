@@ -180,26 +180,17 @@
         }
         
         // In a real implementation, this would fetch data from your API
-        function fetchDebtData() {
+         function fetchDebtData() {
             const apiUrl = "https://script.google.com/macros/s/AKfycbxrESqeWr43FCitCCE7xdJWV8hDJAVzlBRrCAiNKszrXo26kpGRvpraGwz4vdjxWRRlhQ/exec";
             
-            // Log for debugging
-            console.log("Fetching data from API...");
+            console.log("Fetching data using JSONP...");
             
-            fetch(apiUrl, {
-                method: 'GET',
-                mode: 'cors',
-                cache: 'no-cache', // Don't use cached data
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                console.log("API response received");
-                return response.json();
-            })
-            .then(data => {
-                console.log("API data:", data);
+            // Create a script element for JSONP approach
+            const script = document.createElement('script');
+            
+            // Define a global callback function that will be called by the JSONP response
+            window.handleDebtData = function(data) {
+                console.log("Data received via JSONP:", data);
                 
                 // Update the debtInfo object with the API data
                 debtInfo.initialLoan = data.initialLoan;
@@ -212,13 +203,26 @@
                 
                 // Update the UI
                 updateUI();
-            })
-            .catch(error => {
-                console.error("Error fetching data:", error);
-                // Still update the UI with the default values if API fails
-                updateUI();
-            });
-        }
+                
+                // Clean up - remove the script tag and global function
+                document.body.removeChild(script);
+                delete window.handleDebtData;
+            };
+    
+    // Add error handling
+    script.onerror = function() {
+        console.error("Error loading JSONP script");
+        updateUI(); // Fall back to default values
+        document.body.removeChild(script);
+        delete window.handleDebtData;
+    };
+    
+    // Set the source URL with callback parameter
+    script.src = apiUrl + "?callback=handleDebtData";
+    
+    // Add the script to the document to start the request
+    document.body.appendChild(script);
+}
         
         // Initialize UI
         document.addEventListener("DOMContentLoaded", () => {
