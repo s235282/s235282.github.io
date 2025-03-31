@@ -133,13 +133,13 @@
     </div>
     
     <script>
-        // Initial debt information
+        // Initial debt information (will be replaced by API data)
         const debtInfo = {
-            initialLoan: 100,
-            currentDebt: 10.8,
-            totalRepaid: 100,
+            initialLoan: 1000,
+            currentDebt: 1126.125,
+            totalRepaid: 30,
             interestRate: 5,
-            startDate: "01/01/22"
+            startDate: "31/12/21"
         };
         
         // Format currency
@@ -183,27 +183,55 @@
         function fetchDebtData() {
             const apiUrl = "https://script.google.com/macros/s/AKfycbxrESqeWr43FCitCCE7xdJWV8hDJAVzlBRrCAiNKszrXo26kpGRvpraGwz4vdjxWRRlhQ/exec";
             
-            fetch(apiUrl)
-                .then(response => response.json())
-                .then(data => {
-                    debtInfo.initialLoan = data.initialLoan;
-                    debtInfo.currentDebt = data.currentDebt;
-                    debtInfo.totalRepaid = data.totalRepaid;
-                    debtInfo.interestRate = data.interestRate;
-                    debtInfo.startDate = data.startDate;
-                    
-                    updateUI();
-                })
-                .catch(error => {
-                    console.error("Error fetching data:", error);
-                    // Fall back to default values if API call fails
-                    updateUI();
-                });
+            // Log for debugging
+            console.log("Fetching data from API...");
+            
+            fetch(apiUrl, {
+                method: 'GET',
+                mode: 'cors',
+                cache: 'no-cache', // Don't use cached data
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                console.log("API response received");
+                return response.json();
+            })
+            .then(data => {
+                console.log("API data:", data);
+                
+                // Update the debtInfo object with the API data
+                debtInfo.initialLoan = data.initialLoan;
+                debtInfo.currentDebt = data.currentDebt;
+                debtInfo.totalRepaid = data.totalRepaid;
+                debtInfo.interestRate = data.interestRate;
+                debtInfo.startDate = data.startDate;
+                
+                console.log("Updated debtInfo:", debtInfo);
+                
+                // Update the UI
+                updateUI();
+            })
+            .catch(error => {
+                console.error("Error fetching data:", error);
+                // Still update the UI with the default values if API fails
+                updateUI();
+            });
         }
         
         // Initialize UI
         document.addEventListener("DOMContentLoaded", () => {
+            console.log("Page loaded, initializing...");
+            
+            // First update with default values
             updateUI();
+            
+            // Then fetch from API
+            fetchDebtData();
+            
+            // Set up automatic refresh every 5 minutes
+            setInterval(fetchDebtData, 5 * 60 * 1000);
         });
     </script>
 </body>
