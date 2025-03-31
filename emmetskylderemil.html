@@ -67,22 +67,6 @@
             font-weight: bold;
         }
         
-        .refresh-button {
-            background-color: #9b59b6;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            font-size: 1em;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: background-color 0.3s;
-        }
-        
-        .refresh-button:hover {
-            background-color: #8e44ad;
-        }
-        
         .last-updated {
             font-size: 0.8em;
             color: #888;
@@ -136,7 +120,7 @@
         </div>
         
         <div class="info-row">
-            <span class="info-label">Interest Rate:</span>
+            <span class="info-label">Yearly Interest Rate:</span>
             <span class="info-value" id="interestRate">0%</span>
         </div>
         
@@ -144,8 +128,6 @@
             <span class="info-label">Loan Start Date:</span>
             <span class="info-value" id="startDate">-</span>
         </div>
-        
-        <button class="refresh-button" id="refreshButton">Refresh Data</button>
         
         <div class="last-updated" id="lastUpdated">Last updated: Never</div>
     </div>
@@ -199,25 +181,25 @@
         
         // In a real implementation, this would fetch data from your API
         function fetchDebtData() {
-            // Simulate API call with a delay
-            document.getElementById("refreshButton").disabled = true;
-            document.getElementById("refreshButton").textContent = "Updating...";
+            const apiUrl = "https://script.google.com/macros/s/AKfycbxrESqeWr43FCitCCE7xdJWV8hDJAVzlBRrCAiNKszrXo26kpGRvpraGwz4vdjxWRRlhQ/exec";
             
-            setTimeout(() => {
-                // In a real implementation, you would fetch this data from your backend
-                // that interfaces with your Google Sheets
-                
-                // For demonstration, we'll just add some random fluctuation
-                debtInfo.currentDebt = Math.max(0, debtInfo.currentDebt + (Math.random() - 0.5) * 0.5);
-                
-                updateUI();
-                document.getElementById("refreshButton").disabled = false;
-                document.getElementById("refreshButton").textContent = "Refresh Data";
-            }, 1000);
+            fetch(apiUrl)
+                .then(response => response.json())
+                .then(data => {
+                    debtInfo.initialLoan = data.initialLoan;
+                    debtInfo.currentDebt = data.currentDebt;
+                    debtInfo.totalRepaid = data.totalRepaid;
+                    debtInfo.interestRate = data.interestRate;
+                    debtInfo.startDate = data.startDate;
+                    
+                    updateUI();
+                })
+                .catch(error => {
+                    console.error("Error fetching data:", error);
+                    // Fall back to default values if API call fails
+                    updateUI();
+                });
         }
-        
-        // Event listeners
-        document.getElementById("refreshButton").addEventListener("click", fetchDebtData);
         
         // Initialize UI
         document.addEventListener("DOMContentLoaded", () => {
