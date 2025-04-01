@@ -185,11 +185,11 @@
             
             console.log("Fetching data using JSONP...");
             
-            // Create a script element for JSONP approach
-            const script = document.createElement('script');
+            // Create a unique callback name based on timestamp to avoid caching issues
+            const callbackName = 'jsonpCallback_' + new Date().getTime();
             
             // Define a global callback function that will be called by the JSONP response
-            window.handleDebtData = function(data) {
+            window[callbackName] = function(data) {
                 console.log("Data received via JSONP:", data);
                 
                 // Update the debtInfo object with the API data
@@ -206,23 +206,26 @@
                 
                 // Clean up - remove the script tag and global function
                 document.body.removeChild(script);
-                delete window.handleDebtData;
+                delete window[callbackName];
             };
-    
-    // Add error handling
-    script.onerror = function() {
-        console.error("Error loading JSONP script");
-        updateUI(); // Fall back to default values
-        document.body.removeChild(script);
-        delete window.handleDebtData;
-    };
-    
-    // Set the source URL with callback parameter
-    script.src = apiUrl + "?callback=handleDebtData";
-    
-    // Add the script to the document to start the request
-    document.body.appendChild(script);
-}
+            
+            // Create a script element for JSONP approach
+            const script = document.createElement('script');
+            
+            // Add error handling
+            script.onerror = function() {
+                console.error("Error loading JSONP script");
+                updateUI(); // Fall back to default values
+                document.body.removeChild(script);
+                delete window[callbackName];
+            };
+            
+            // Set the source URL with callback parameter
+            script.src = apiUrl + "?callback=" + callbackName;
+            
+            // Add the script to the document to start the request
+            document.body.appendChild(script);
+        }
         
         // Initialize UI
         document.addEventListener("DOMContentLoaded", () => {
