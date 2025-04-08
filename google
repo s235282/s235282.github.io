@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      window.location.href = "google.com";
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to <a href="google.com">Google Sheet</a>...</p>
+  </body>
+</html>
