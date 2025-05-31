@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Item Owed Tracker</title>
     <style>
         html, body {
@@ -53,47 +53,105 @@
 </head>
 <body>
     <header>Owed Item Tracker</header>
+
+    <!-- Watches Owed Section -->
     <div class="tracker-container">
         <h2>Watches Owed</h2>
         <div class="debt-display" id="currentDebt">0 watches</div>
         <div class="info" id="details"></div>
     </div>
 
-    <script>
-        // Configuration
-        const initialCount = 1; // initial loaned watches
-        const monthlyRate = 0.10; // 10% monthly interest
-        const startDate = new Date('2025-05-01T00:00:00');
+    <!-- Chromecast Owed Section -->
+    <div class="tracker-container">
+        <h2>Chromecast Owed</h2>
+        <div class="debt-display" id="chromecastDebt">1 chromecast</div>
+        <div class="info" id="chromecastDetails">Borrowed on March 31, 2025</div>
+    </div>
 
-        // Calculate current debt with monthly compounding
-        function calculateDebt() {
+    <script>
+        // ───────────────────────────────────────────────────────────────
+        //  Configuration for "Watches Owed" (with 10% monthly interest)
+        // ───────────────────────────────────────────────────────────────
+        const initialWatches = 1;                      // initial loaned watches
+        const monthlyRate    = 0.10;                   // 10% monthly interest
+        const watchStartDate = new Date('2025-05-01T00:00:00');
+
+        // Calculate current watches owed (compounded monthly at 10%)
+        function calculateWatchDebt() {
             const now = new Date();
-            let monthsElapsed = (now.getFullYear() - startDate.getFullYear()) * 12 +
-                                (now.getMonth() - startDate.getMonth());
-            if (now.getDate() < startDate.getDate()) monthsElapsed -= 1;
+            let monthsElapsed =
+                (now.getFullYear() - watchStartDate.getFullYear()) * 12 +
+                (now.getMonth() - watchStartDate.getMonth());
+            // If today's day-of-month is earlier than the start-day, subtract 1 month
+            if (now.getDate() < watchStartDate.getDate()) {
+                monthsElapsed -= 1;
+            }
             monthsElapsed = Math.max(0, monthsElapsed);
-            const amount = initialCount * Math.pow(1 + monthlyRate, monthsElapsed);
+
+            const amount = initialWatches * Math.pow(1 + monthlyRate, monthsElapsed);
             return { amount, monthsElapsed };
         }
 
-        // Format item count
-        function formatItems(count) {
+        // Format item count—round up to 2 decimals and append singular/plural
+        function formatItems(count, singular, plural) {
             const rounded = Math.ceil(count * 100) / 100; // round up to 2 decimals
-            return `${rounded} ${rounded === 1 ? 'watch' : 'watches'}`;
+            return `${rounded} ${rounded === 1 ? singular : plural}`;
         }
 
-        // Update UI
-        function updateUI() {
-            const { amount, monthsElapsed } = calculateDebt();
-            document.getElementById('currentDebt').textContent = formatItems(amount);
+        // Update the "Watches" UI fields every minute
+        function updateWatchUI() {
+            const { amount, monthsElapsed } = calculateWatchDebt();
+            document.getElementById('currentDebt').textContent =
+                formatItems(amount, 'watch', 'watches');
             document.getElementById('details').textContent =
-                `Initial loan: ${initialCount} watch on May 1, 2025 | ` +
-                `Interest: ${monthlyRate * 100}%/month | ` +
+                `Initial loan: ${initialWatches} watch on May 1, 2025 | ` +
+                `Interest: ${(monthlyRate * 100).toFixed(0)}%/month | ` +
                 `${monthsElapsed} month${monthsElapsed === 1 ? '' : 's'} elapsed`;
         }
 
-        document.addEventListener('DOMContentLoaded', updateUI);
-        setInterval(updateUI, 60 * 1000); // refresh every minute
+        // ───────────────────────────────────────────────────────────────
+        //  Configuration for "Chromecast Owed"
+        // ───────────────────────────────────────────────────────────────
+        // Since we only owe a single Chromecast, borrowed on March 31, 2025,
+        // we'll display it as a static “1 chromecast” with the borrow date.
+        // If you want to add interest or dynamic behavior, you can replicate
+        // the above pattern (calculate a new “debt” over time).
+        const chromecastBorrowDate = new Date('2025-03-31T00:00:00');
+
+        // (Optional) If you ever want to show how many days it’s been since it was borrowed:
+        function daysSince(date) {
+            const now = new Date();
+            const msPerDay = 24 * 60 * 60 * 1000;
+            const diff = now - date;
+            return Math.floor(diff / msPerDay);
+        }
+
+        function updateChromecastUI() {
+            // Right now this is static, but here’s how you could display days elapsed:
+            // const daysElapsed = daysSince(chromecastBorrowDate);
+            // document.getElementById('chromecastDebt').textContent =
+            //     `1 chromecast (borrowed ${daysElapsed} days ago)`;
+            // document.getElementById('chromecastDetails').textContent = '';
+            
+            // For a simple fixed display, we keep it static:
+            document.getElementById('chromecastDebt').textContent = '1 chromecast';
+            document.getElementById('chromecastDetails').textContent =
+                'Borrowed on March 31, 2025';
+        }
+
+        // ───────────────────────────────────────────────────────────────
+        //  Initialize and keep updating every minute
+        // ───────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            updateWatchUI();
+            updateChromecastUI();
+            // Refresh every minute in case you want to see up-to-date watch interest
+            setInterval(() => {
+                updateWatchUI();
+                // If you add dynamic behavior to Chromecast, call updateChromecastUI() here too
+            }, 60 * 1000);
+        });
     </script>
 </body>
 </html>
+
