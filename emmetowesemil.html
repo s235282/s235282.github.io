@@ -65,7 +65,7 @@
     <div class="tracker-container">
         <h2>Chromecast Owed</h2>
         <div class="debt-display" id="chromecastDebt">1 chromecast</div>
-        <div class="info" id="chromecastDetails">Borrowed on March 31, 2025</div>
+        <div class="info" id="chromecastDetails"></div>
     </div>
 
     <script>
@@ -110,33 +110,37 @@
         }
 
         // ───────────────────────────────────────────────────────────────
-        //  Configuration for "Chromecast Owed"
+        //  Configuration for "Chromecast Owed" (now with 10% monthly interest)
         // ───────────────────────────────────────────────────────────────
-        // Since we only owe a single Chromecast, borrowed on March 31, 2025,
-        // we'll display it as a static “1 chromecast” with the borrow date.
-        // If you want to add interest or dynamic behavior, you can replicate
-        // the above pattern (calculate a new “debt” over time).
-        const chromecastBorrowDate = new Date('2025-03-31T00:00:00');
+        const initialChromecasts     = 1;                      // initial loaned chromecasts
+        const chromecastMonthlyRate  = 0.10;                   // 10% monthly interest
+        const chromecastStartDate    = new Date('2025-06-01T00:00:00');
 
-        // (Optional) If you ever want to show how many days it’s been since it was borrowed:
-        function daysSince(date) {
+        // Calculate current chromecasts owed (compounded monthly at 10%)
+        function calculateChromecastDebt() {
             const now = new Date();
-            const msPerDay = 24 * 60 * 60 * 1000;
-            const diff = now - date;
-            return Math.floor(diff / msPerDay);
+            let monthsElapsed =
+                (now.getFullYear() - chromecastStartDate.getFullYear()) * 12 +
+                (now.getMonth() - chromecastStartDate.getMonth());
+            // If today's day-of-month is earlier than the start-day, subtract 1 month
+            if (now.getDate() < chromecastStartDate.getDate()) {
+                monthsElapsed -= 1;
+            }
+            monthsElapsed = Math.max(0, monthsElapsed);
+
+            const amount = initialChromecasts * Math.pow(1 + chromecastMonthlyRate, monthsElapsed);
+            return { amount, monthsElapsed };
         }
 
         function updateChromecastUI() {
-            // Right now this is static, but here’s how you could display days elapsed:
-            // const daysElapsed = daysSince(chromecastBorrowDate);
-            // document.getElementById('chromecastDebt').textContent =
-            //     `1 chromecast (borrowed ${daysElapsed} days ago)`;
-            // document.getElementById('chromecastDetails').textContent = '';
-            
-            // For a simple fixed display, we keep it static:
-            document.getElementById('chromecastDebt').textContent = '1 chromecast';
+            const { amount, monthsElapsed } = calculateChromecastDebt();
+            document.getElementById('chromecastDebt').textContent =
+                formatItems(amount, 'chromecast', 'chromecasts');
             document.getElementById('chromecastDetails').textContent =
-                'Borrowed on May 31, 2025';
+                `Initial loan: ${initialChromecasts} chromecast on June 1, 2025 | ` +
+                `Interest: ${(chromecastMonthlyRate * 100).toFixed(0)}%/month | ` +
+                `${monthsElapsed} month${monthsElapsed === 1 ? '' : 's'} elapsed` +
+                ` | Failure to repay will be dealt with by appropriate parties.`;
         }
 
         // ───────────────────────────────────────────────────────────────
@@ -145,13 +149,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             updateWatchUI();
             updateChromecastUI();
-            // Refresh every minute in case you want to see up-to-date watch interest
+            // Refresh every minute to update interest
             setInterval(() => {
                 updateWatchUI();
-                // If you add dynamic behavior to Chromecast, call updateChromecastUI() here too
+                updateChromecastUI();
             }, 60 * 1000);
         });
     </script>
 </body>
 </html>
-
