@@ -18,86 +18,111 @@
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
       import {
-        getDatabase, ref, onValue, update, serverTimestamp
+        getDatabase,
+        ref,
+        onValue,
+        update,
+        serverTimestamp
       } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
     
-      const firebaseConfig = { /* your config */ };
-      const app = initializeApp(firebaseConfig);
-      const db = getDatabase(app);
+      // ─────── Your Firebase Config ───────
+      const firebaseConfig = {
+        apiKey: "AIzaSyBIc5b9U1ZuDVUcP8YtNrTTsMk67Uiapf4",
+        authDomain: "of1-90bc8.firebaseapp.com",
+        projectId: "of1-90bc8",
+        storageBucket: "of1-90bc8.firebasestorage.app",
+        messagingSenderId: "964181896354",
+        appId: "1:964181896354:web:62b7fee3d4ce51f1e5bbfb",
+        measurementId: "G-HFGY9RTG59"
+      };
     
-      // DOM refs
-      const join1 = document.getElementById('join-player1');
-      const join2 = document.getElementById('join-player2');
-      const area  = document.getElementById('game-area');
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db  = getDatabase(app);
+    
+      // DOM references
+      const area     = document.getElementById('game-area');
       const specView = document.getElementById('spectator-view');
     
-      // Helpers
+      // Render UI based on current state
       function render(state) {
         const p1 = state.players.player1;
         const p2 = state.players.player2;
-        // If both occupied → spectator mode
+    
+        // If both joined → spectator view
         if (p1.occupied && p2.occupied) {
           area.style.display = 'none';
           specView.style.display = '';
           specView.innerHTML = `
-            <p>Revealed at ${new Date(state.lastReveal).toLocaleTimeString()}</p>
-            <div>Player1: ${p1.number ?? '—'}</div>
-            <div>Player2: ${p2.number ?? '—'}</div>
+            <h2>Spectator View</h2>
+            <p>Last reveal: ${new Date(state.lastReveal).toLocaleTimeString()}</p>
+            <div>Player 1 picked: <strong>${p1.number ?? '–'}</strong></div>
+            <div>Player 2 picked: <strong>${p2.number ?? '–'}</strong></div>
           `;
           return;
         }
-        // Otherwise show join buttons & individual input forms
-        area.style.display = '';
+    
+        // Otherwise show join/buttons for each slot
         specView.style.display = 'none';
+        area.style.display = '';
         area.innerHTML = '';
-        [['player1', join1], ['player2', join2]].forEach(([slot, btn]) => {
-          const p = state.players[slot];
-          if (!p.occupied) {
-            const b = document.createElement('button');
-            b.textContent = `Join as ${slot}`;
-            b.onclick = () => update(ref(db, `gameState/players/${slot}`), { occupied: true, number: null });
-            area.appendChild(b);
+    
+        ['player1','player2'].forEach(slot => {
+          const player = state.players[slot];
+          if (!player.occupied) {
+            const btn = document.createElement('button');
+            btn.textContent = `Join as ${slot}`;
+            btn.onclick = () =>
+              update(ref(db, `gameState/players/${slot}`), { occupied: true, number: null });
+            area.appendChild(btn);
+    
           } else {
-            const div = document.createElement('div');
-            div.innerHTML = `
-              <span>${slot} (joined)</span>
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = `
+              <strong>${slot}</strong> (joined)
               <input type="number" min="1" max="10" placeholder="1–10" id="${slot}-input">
               <button id="${slot}-submit">Submit</button>
               <button id="${slot}-leave">Leave</button>
             `;
-            area.appendChild(div);
-            // handlers
-            div.querySelector(`#${slot}-submit`).onclick = () => {
-              const val = parseInt(div.querySelector(`#${slot}-input`).value, 10);
+            area.appendChild(wrapper);
+    
+            wrapper.querySelector(`#${slot}-submit`).onclick = () => {
+              const val = parseInt(wrapper.querySelector(`#${slot}-input`).value, 10);
               if (val >= 1 && val <= 10) {
                 update(ref(db, `gameState/players/${slot}`), { number: val });
+              } else {
+                alert('Pick a number between 1 and 10');
               }
             };
-            div.querySelector(`#${slot}-leave`).onclick = () => {
+            wrapper.querySelector(`#${slot}-leave`).onclick = () => {
               update(ref(db, `gameState/players/${slot}`), { occupied: false, number: null });
             };
           }
         });
       }
     
-      // Listen to entire gameState
+      // Listen to gameState (initialize structure if missing)
       onValue(ref(db, 'gameState'), snap => {
-        const state = snap.val() || {
-          players: { player1:{occupied:false,number:null}, player2:{occupied:false,number:null} },
-          lastReveal: 0
+        const defaultState = {
+          players: {
+            player1: { occupied: false, number: null },
+            player2: { occupied: false, number: null }
+          },
+          lastReveal: Date.now()
         };
+        const state = snap.val() || defaultState;
         render(state);
       });
     
-      // Manual Reveal Button (for MVP)
+      // Manual Reveal button
       const revealBtn = document.createElement('button');
       revealBtn.textContent = 'Reveal Now';
-      revealBtn.onclick = () => {
+      revealBtn.style.marginTop = '1em';
+      revealBtn.onclick = () =>
         update(ref(db, 'gameState'), { lastReveal: serverTimestamp() });
-      };
       document.body.appendChild(revealBtn);
     
-      // Optional: automated reveal every minute
+      // (Optional) auto-reveal every 60 seconds:
       // setInterval(() => revealBtn.click(), 60_000);
     </script>
 
