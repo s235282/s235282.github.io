@@ -12,7 +12,7 @@
             font-family: 'Inter', sans-serif;
         }
         .btn {
-            @apply px-6 py-3 rounded-lg font-bold text-white transition-transform transform hover:scale-105 shadow-lg;
+            @apply px-6 py-3 rounded-lg font-bold text-white transition-transform transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed;
         }
         .btn-green {
             @apply bg-green-500 hover:bg-green-600;
@@ -27,7 +27,7 @@
             @apply bg-gray-600 hover:bg-gray-700;
         }
         .player-card {
-            @apply bg-white p-6 rounded-xl shadow-md border border-gray-200;
+            @apply bg-white p-6 rounded-xl shadow-md border border-gray-200 min-h-[250px] flex flex-col justify-between;
         }
     </style>
 </head>
@@ -44,8 +44,7 @@
             <!-- Spectator info gets injected here -->
         </div>
 
-        <!-- Reveal Button: Always available -->
-        <button id="reveal-now" class="btn btn-gray mt-8">Reveal Now</button>
+        <!-- Manual Reveal Button is now removed as it's automatic -->
     </div>
 
     <script type="module">
@@ -60,7 +59,6 @@
         } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
         // --- Firebase Configuration ---
-        // IMPORTANT: Ensure this configuration is correct and your database rules are set up.
         const firebaseConfig = {
             apiKey: "AIzaSyBIc5b9U1ZuDVUcP8YtNrTTsMk67Uiapf4",
             authDomain: "of1-90bc8.firebaseapp.com",
@@ -75,30 +73,71 @@
         const db = getDatabase(app);
         const gameStateRef = ref(db, 'gameState');
 
+        // --- Client-side role tracking ---
+        let myPlayerId = sessionStorage.getItem('myPlayerId');
+
         // --- DOM References ---
         const gameArea = document.getElementById('game-area');
         const spectatorView = document.getElementById('spectator-view');
-        const revealBtn = document.getElementById('reveal-now');
+
+        // --- Constants for Timers ---
+        const REVEAL_INTERVAL_MS = 60 * 1000; // 1 minute
+        const KICK_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
         // --- State Management and Rendering ---
 
-        // Listen for changes in the game state and re-render the UI
         onValue(gameStateRef, (snap) => {
             const rawState = snap.val() || {};
-
-            // **THE FIX**: Deeply merge the raw state from Firebase with a default structure.
-            // This prevents 'undefined' errors if `players` or a specific player object doesn't exist yet.
+            
+            // Merge Firebase state with a default structure to prevent errors
             const state = {
                 players: {
-                    player1: { occupied: false, number: null, ...rawState.players?.player1 },
-                    player2: { occupied: false, number: null, ...rawState.players?.player2 }
+                    player1: { occupied: false, number: null, joinedAt: null, ...rawState.players?.player1 },
+                    player2: { occupied: false, number: null, joinedAt: null, ...rawState.players?.player2 }
                 },
                 lastReveal: rawState.lastReveal || Date.now()
             };
+
+            // If this client was kicked, clear their session storage
+            if (myPlayerId && !state.players[myPlayerId]?.occupied) {
+                myPlayerId = null;
+                sessionStorage.removeItem('myPlayerId');
+            }
             
-            console.log('State updated and rendering:', state);
+            console.log(`State updated. My role: ${myPlayerId || 'Spectator'}`);
+            runTimedChecks(state);
             render(state);
         });
+
+        /**
+         * Runs automatic checks for revealing numbers and kicking inactive players.
+         * This function is called every time the state updates.
+         * @param {object} state - The current game state.
+         */
+        function runTimedChecks(state) {
+            const now = Date.now();
+            const p1 = state.players.player1;
+            const p2 = state.players.player2;
+
+            // 1. Auto-reveal check
+            const timeSinceLastReveal = now - state.lastReveal;
+            if (p1.number != null && p2.number != null && timeSinceLastReveal > REVEAL_INTERVAL_MS) {
+                console.log("Auto-revealing numbers...");
+                update(gameStateRef, { lastReveal: serverTimestamp() });
+            }
+
+            // 2. Auto-kick check
+            for (const playerId of ['player1', 'player2']) {
+                const player = state.players[playerId];
+                if (player.occupied && player.joinedAt) {
+                    const timeSinceJoin = now - player.joinedAt;
+                    if (timeSinceJoin > KICK_INTERVAL_MS) {
+                        console.log(`Kicking ${playerId} due to inactivity...`);
+                        handleLeave(playerId, true); // Pass true for silent leave
+                    }
+                }
+            }
+        }
 
         /**
          * Renders the entire game UI based on the current state.
@@ -107,14 +146,15 @@
         function render(state) {
             const p1 = state.players.player1;
             const p2 = state.players.player2;
-
-            // Condition to show Spectator View
+            
             if (p1.occupied && p2.occupied) {
                 gameArea.style.display = 'none';
                 spectatorView.style.display = 'block';
-                spectatorView.innerHTML = `
+                // (Spectator view HTML is unchanged)
+                 spectatorView.innerHTML = `
                     <h2 class="text-2xl font-bold text-gray-700 mb-4">Spectator View</h2>
-                    <p class="text-gray-600 mb-6">Last reveal: <strong class="text-indigo-500">${new Date(state.lastReveal).toLocaleTimeString()}</strong></p>
+                    <p class="text-gray-600 mb-6">Numbers revealed automatically. Next reveal check happens constantly.</p>
+                    <p class="text-gray-500 mb-6">Last reveal: <strong class="text-indigo-500">${new Date(state.lastReveal).toLocaleTimeString()}</strong></p>
                     <div class="flex justify-around text-xl">
                         <div class="text-center">
                             <div class="text-gray-500">Player 1</div>
@@ -126,8 +166,8 @@
                         </div>
                     </div>
                 `;
+
             } else {
-                // Show Game Area
                 spectatorView.style.display = 'none';
                 gameArea.style.display = 'block';
                 gameArea.innerHTML = `
@@ -136,41 +176,53 @@
                         ${renderPlayerCard('player2', p2)}
                     </div>
                 `;
-                // Add event listeners after rendering the cards
-                addEventListeners(state);
+                addEventListeners();
             }
         }
 
         /**
-         * Generates the HTML for a single player card.
-         * @param {string} playerId - 'player1' or 'player2'.
-         * @param {object} playerState - The state object for that player.
-         * @returns {string} HTML string for the player card.
+         * Generates the HTML for a single player card, now aware of the current user's role.
          */
         function renderPlayerCard(playerId, playerState) {
             const title = playerId === 'player1' ? 'Player 1' : 'Player 2';
             const colorClass = playerId === 'player1' ? 'blue' : 'green';
 
             if (playerState.occupied) {
-                // Render card for an occupied slot (input, submit, leave)
-                return `
-                    <div class="player-card">
-                        <h3 class="text-2xl font-bold text-${colorClass}-500">${title} (Joined)</h3>
-                        <p class="text-gray-500 mb-4">Your number: <strong class="text-2xl">${playerState.number ?? 'Not set'}</strong></p>
-                        <div class="flex gap-2 mt-4">
-                            <input type="number" min="1" max="10" id="${playerId}-input" class="w-full p-2 border rounded-md" placeholder="Enter 1-10">
-                            <button id="${playerId}-submit" class="btn btn-${colorClass} flex-shrink-0">Set</button>
+                // This slot is taken. Is it by me?
+                if (myPlayerId === playerId) {
+                    // It's me! Show full controls.
+                    return `
+                        <div class="player-card">
+                            <div>
+                                <h3 class="text-2xl font-bold text-${colorClass}-500">${title} (You)</h3>
+                                <p class="text-gray-500 mb-4">Your number: <strong class="text-2xl">${playerState.number ?? 'Not set'}</strong></p>
+                            </div>
+                            <div>
+                                <div class="flex gap-2 mt-4">
+                                    <input type="number" min="1" max="10" id="${playerId}-input" class="w-full p-2 border rounded-md" placeholder="Enter 1-10">
+                                    <button id="${playerId}-submit" class="btn btn-${colorClass} flex-shrink-0">Set</button>
+                                </div>
+                                <button id="${playerId}-leave" class="w-full mt-3 text-sm text-red-500 hover:underline">Leave Game</button>
+                            </div>
                         </div>
-                        <button id="${playerId}-leave" class="w-full mt-3 text-sm text-red-500 hover:underline">Leave Game</button>
-                    </div>
-                `;
+                    `;
+                } else {
+                    // It's taken by someone else. Show a locked view.
+                    return `
+                        <div class="player-card items-center justify-center text-center">
+                             <h3 class="text-2xl font-bold text-gray-600">${title}</h3>
+                             <p class="text-gray-500 mt-2">Slot taken by another player.</p>
+                        </div>
+                    `;
+                }
             } else {
-                // Render card for an available slot (join button)
+                // This slot is available.
+                const canJoin = !myPlayerId; // Can only join if I'm not already a player.
                 return `
                     <div class="player-card flex flex-col items-center justify-center">
                         <h3 class="text-2xl font-bold text-gray-600">${title}</h3>
                         <p class="text-gray-400 mb-4">(Available)</p>
-                        <button id="join-${playerId}" class="btn btn-${colorClass}">Join as ${title}</button>
+                        <button id="join-${playerId}" class="btn btn-${colorClass}" ${canJoin ? '' : 'disabled'}>Join as ${title}</button>
                     </div>
                 `;
             }
@@ -180,45 +232,46 @@
          * Attaches all necessary event listeners to the dynamic UI elements.
          */
         function addEventListeners() {
-            // Join buttons
             document.getElementById('join-player1')?.addEventListener('click', () => handleJoin('player1'));
             document.getElementById('join-player2')?.addEventListener('click', () => handleJoin('player2'));
-
-            // Submit buttons
             document.getElementById('player1-submit')?.addEventListener('click', () => handleSubmit('player1'));
             document.getElementById('player2-submit')?.addEventListener('click', () => handleSubmit('player2'));
-
-            // Leave buttons
             document.getElementById('player1-leave')?.addEventListener('click', () => handleLeave('player1'));
             document.getElementById('player2-leave')?.addEventListener('click', () => handleLeave('player2'));
         }
         
         // --- Event Handlers ---
-        
-        revealBtn.onclick = () => {
-             update(gameStateRef, { lastReveal: serverTimestamp() });
-             console.log("Reveal triggered!");
-        };
 
         function handleJoin(playerId) {
-            const path = `players/${playerId}`;
-            update(ref(db, `gameState/${path}`), { occupied: true, number: null });
+            sessionStorage.setItem('myPlayerId', playerId);
+            myPlayerId = playerId;
+            update(ref(db, `gameState/players/${playerId}`), { 
+                occupied: true, 
+                number: null,
+                joinedAt: serverTimestamp() 
+            });
         }
 
-        function handleLeave(playerId) {
-            const path = `players/${playerId}`;
-            // Using `set` instead of `update` to completely overwrite the player object
-            set(ref(db, `gameState/${path}`), { occupied: false, number: null });
+        function handleLeave(playerId, isSilent = false) {
+            if (!isSilent) {
+                sessionStorage.removeItem('myPlayerId');
+                myPlayerId = null;
+            }
+            set(ref(db, `gameState/players/${playerId}`), { 
+                occupied: false, 
+                number: null,
+                joinedAt: null
+            });
         }
 
         function handleSubmit(playerId) {
             const input = document.getElementById(`${playerId}-input`);
+            if (!input) return;
             const value = parseInt(input.value, 10);
             if (value >= 1 && value <= 10) {
                  update(ref(db, `gameState/players/${playerId}`), { number: value });
-                 input.value = ''; // Clear input on success
+                 input.value = '';
             } else {
-                 // A simple, non-blocking notification
                  input.classList.add('border-red-500');
                  input.placeholder = "Invalid number!";
                  setTimeout(() => {
