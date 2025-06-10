@@ -8,7 +8,9 @@
   <h1>1 til 10</h1>
 
   <div id="game-area">
-    <!-- Join buttons and player inputs get injected here -->
+    <!-- Static join buttons -->
+    <button id="join-player1">Join as Player 1</button>
+    <button id="join-player2">Join as Player 2</button>
   </div>
 
   <div id="spectator-view" style="display:none;">
@@ -25,11 +27,10 @@
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
 
-    // ─────── Your Firebase Config ───────
     const firebaseConfig = {
       apiKey: "AIzaSyBIc5b9U1ZuDVUcP8YtNrTTsMk67Uiapf4",
       authDomain: "of1-90bc8.firebaseapp.com",
-      databaseURL: "https://of1-90bc8-default-rtdb.firebaseio.com",  // ← use the firebaseio.com endpoint
+      databaseURL: "https://of1-90bc8-default-rtdb.firebaseio.com",
       projectId: "of1-90bc8",
       storageBucket: "of1-90bc8.firebasestorage.app",
       messagingSenderId: "964181896354",
@@ -37,94 +38,95 @@
       measurementId: "G-HFGY9RTG59"
     };
 
-    // Initialize Firebase
     const app = initializeApp(firebaseConfig);
     const db  = getDatabase(app);
 
-    // DOM references
-    const area     = document.getElementById('game-area');
-    const specView = document.getElementById('spectator-view');
+    // DOM refs
+    const ga        = document.getElementById('game-area');
+    const specView  = document.getElementById('spectator-view');
+    const join1Btn  = document.getElementById('join-player1');
+    const join2Btn  = document.getElementById('join-player2');
 
-    // Render UI based on current state
+    // Hook up join buttons
+    join1Btn.onclick = () =>
+      update(ref(db, 'gameState/players/player1'), { occupied: true, number: null });
+    join2Btn.onclick = () =>
+      update(ref(db, 'gameState/players/player2'), { occupied: true, number: null });
+
     function render(state) {
       const p1 = state.players.player1;
       const p2 = state.players.player2;
 
-      // Spectator view when both slots are taken
+      // Spectator once both joined
       if (p1.occupied && p2.occupied) {
-        area.style.display = 'none';
+        ga.style.display = 'none';
         specView.style.display = '';
         specView.innerHTML = `
           <h2>Spectator View</h2>
           <p>Last reveal: ${new Date(state.lastReveal).toLocaleTimeString()}</p>
-          <div>Player 1 picked: <strong>${p1.number ?? '–'}</strong></div>
-          <div>Player 2 picked: <strong>${p2.number ?? '–'}</strong></div>
+          <div>Player 1: <strong>${p1.number ?? '–'}</strong></div>
+          <div>Player 2: <strong>${p2.number ?? '–'}</strong></div>
         `;
         return;
       }
 
-      // Otherwise show join/buttons for each slot
+      // Otherwise show game-area
       specView.style.display = 'none';
-      area.style.display = '';
-      area.innerHTML = '';
+      ga.style.display = '';
 
+      // Show/hide join buttons
+      join1Btn.style.display = p1.occupied ? 'none' : '';
+      join2Btn.style.display = p2.occupied ? 'none' : '';
+
+      // For slots already occupied, append an input+submit+leave
       ['player1','player2'].forEach(slot => {
-        const player = state.players[slot];
-        if (!player.occupied) {
-          const btn = document.createElement('button');
-          btn.textContent = `Join as ${slot}`;
-          btn.onclick = () =>
-            update(ref(db, `gameState/players/${slot}`), { occupied: true, number: null });
-          area.appendChild(btn);
+        const existing = document.getElementById(slot + '-wrapper');
+        if (existing) existing.remove();
 
-        } else {
-          const wrapper = document.createElement('div');
-          wrapper.innerHTML = `
+        if (state.players[slot].occupied) {
+          const div = document.createElement('div');
+          div.id = slot + '-wrapper';
+          div.innerHTML = `
             <strong>${slot}</strong> (joined)
-            <input type="number" min="1" max="10" placeholder="1–10" id="${slot}-input">
+            <input type="number" min="1" max="10" id="${slot}-input" placeholder="1–10">
             <button id="${slot}-submit">Submit</button>
             <button id="${slot}-leave">Leave</button>
           `;
-          area.appendChild(wrapper);
+          ga.appendChild(div);
 
-          wrapper.querySelector(`#${slot}-submit`).onclick = () => {
-            const val = parseInt(wrapper.querySelector(`#${slot}-input`).value, 10);
-            if (val >= 1 && val <= 10) {
-              update(ref(db, `gameState/players/${slot}`), { number: val });
-            } else {
-              alert('Pick a number between 1 and 10');
-            }
+          div.querySelector(`#${slot}-submit`).onclick = () => {
+            const v = parseInt(div.querySelector(`#${slot}-input`).value, 10);
+            if (v >= 1 && v <= 10) {
+              update(ref(db, `gameState/players/${slot}`), { number: v });
+            } else alert('Pick a number 1–10');
           };
-          wrapper.querySelector(`#${slot}-leave`).onclick = () => {
+          div.querySelector(`#${slot}-leave`).onclick = () => {
             update(ref(db, `gameState/players/${slot}`), { occupied: false, number: null });
           };
         }
       });
     }
 
-    // Listen for realtime updates to gameState (initialize if missing)
+    // Listen & render
     onValue(ref(db, 'gameState'), snap => {
       const defaultState = {
-        players: {
+        players: { 
           player1: { occupied: false, number: null },
           player2: { occupied: false, number: null }
         },
         lastReveal: Date.now()
       };
-      const state = snap.val() || defaultState;
-      render(state);
+      render(snap.val() || defaultState);
     });
 
-    // Manual “Reveal Now” button
-    const revealBtn = document.createElement('button');
-    revealBtn.textContent = 'Reveal Now';
-    revealBtn.style.marginTop = '1em';
-    revealBtn.onclick = () =>
+    // “Reveal Now” button
+    const reveal = document.createElement('button');
+    reveal.textContent = 'Reveal Now';
+    reveal.style.display = 'block';
+    reveal.style.marginTop = '1em';
+    reveal.onclick = () =>
       update(ref(db, 'gameState'), { lastReveal: serverTimestamp() });
-    document.body.appendChild(revealBtn);
-
-    // (Optional) automated reveal every 60 seconds:
-    // setInterval(() => revealBtn.click(), 60_000);
+    document.body.appendChild(reveal);
   </script>
 </body>
 </html>
