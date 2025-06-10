@@ -15,8 +15,91 @@
         <p>Game in progress. Spectating...</p>
     </div>
 
-    <script>
-        // JavaScript will be placed here
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+      import {
+        getDatabase, ref, onValue, update, serverTimestamp
+      } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+    
+      const firebaseConfig = { /* your config */ };
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+    
+      // DOM refs
+      const join1 = document.getElementById('join-player1');
+      const join2 = document.getElementById('join-player2');
+      const area  = document.getElementById('game-area');
+      const specView = document.getElementById('spectator-view');
+    
+      // Helpers
+      function render(state) {
+        const p1 = state.players.player1;
+        const p2 = state.players.player2;
+        // If both occupied → spectator mode
+        if (p1.occupied && p2.occupied) {
+          area.style.display = 'none';
+          specView.style.display = '';
+          specView.innerHTML = `
+            <p>Revealed at ${new Date(state.lastReveal).toLocaleTimeString()}</p>
+            <div>Player1: ${p1.number ?? '—'}</div>
+            <div>Player2: ${p2.number ?? '—'}</div>
+          `;
+          return;
+        }
+        // Otherwise show join buttons & individual input forms
+        area.style.display = '';
+        specView.style.display = 'none';
+        area.innerHTML = '';
+        [['player1', join1], ['player2', join2]].forEach(([slot, btn]) => {
+          const p = state.players[slot];
+          if (!p.occupied) {
+            const b = document.createElement('button');
+            b.textContent = `Join as ${slot}`;
+            b.onclick = () => update(ref(db, `gameState/players/${slot}`), { occupied: true, number: null });
+            area.appendChild(b);
+          } else {
+            const div = document.createElement('div');
+            div.innerHTML = `
+              <span>${slot} (joined)</span>
+              <input type="number" min="1" max="10" placeholder="1–10" id="${slot}-input">
+              <button id="${slot}-submit">Submit</button>
+              <button id="${slot}-leave">Leave</button>
+            `;
+            area.appendChild(div);
+            // handlers
+            div.querySelector(`#${slot}-submit`).onclick = () => {
+              const val = parseInt(div.querySelector(`#${slot}-input`).value, 10);
+              if (val >= 1 && val <= 10) {
+                update(ref(db, `gameState/players/${slot}`), { number: val });
+              }
+            };
+            div.querySelector(`#${slot}-leave`).onclick = () => {
+              update(ref(db, `gameState/players/${slot}`), { occupied: false, number: null });
+            };
+          }
+        });
+      }
+    
+      // Listen to entire gameState
+      onValue(ref(db, 'gameState'), snap => {
+        const state = snap.val() || {
+          players: { player1:{occupied:false,number:null}, player2:{occupied:false,number:null} },
+          lastReveal: 0
+        };
+        render(state);
+      });
+    
+      // Manual Reveal Button (for MVP)
+      const revealBtn = document.createElement('button');
+      revealBtn.textContent = 'Reveal Now';
+      revealBtn.onclick = () => {
+        update(ref(db, 'gameState'), { lastReveal: serverTimestamp() });
+      };
+      document.body.appendChild(revealBtn);
+    
+      // Optional: automated reveal every minute
+      // setInterval(() => revealBtn.click(), 60_000);
     </script>
+
 </body>
 </html>
