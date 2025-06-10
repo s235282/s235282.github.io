@@ -1,130 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>1 til 10</title>
+  <meta charset="UTF-8">
+  <title>1 til 10</title>
 </head>
 <body>
-    <h1>1 til 10</h1>
-    <div id="game-area">
-        <button id="join-player1">Join as Player 1</button>
-        <button id="join-player2">Join as Player 2</button>
-    </div>
+  <h1>1 til 10</h1>
 
-    <div id="spectator-view" style="display:none;">
-        <p>Game in progress. Spectating...</p>
-    </div>
+  <div id="game-area">
+    <!-- Join buttons and player inputs get injected here -->
+  </div>
 
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-      import {
-        getDatabase,
-        ref,
-        onValue,
-        update,
-        serverTimestamp
-      } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
-    
-      // ─────── Your Firebase Config ───────
-      const firebaseConfig = {
-        apiKey: "AIzaSyBIc5b9U1ZuDVUcP8YtNrTTsMk67Uiapf4",
-        authDomain: "of1-90bc8.firebaseapp.com",
-        projectId: "of1-90bc8",
-        storageBucket: "of1-90bc8.firebasestorage.app",
-        messagingSenderId: "964181896354",
-        appId: "1:964181896354:web:62b7fee3d4ce51f1e5bbfb",
-        measurementId: "G-HFGY9RTG59"
-      };
-    
-      // Initialize Firebase
-      const app = initializeApp(firebaseConfig);
-      const db  = getDatabase(app);
-    
-      // DOM references
-      const area     = document.getElementById('game-area');
-      const specView = document.getElementById('spectator-view');
-    
-      // Render UI based on current state
-      function render(state) {
-        const p1 = state.players.player1;
-        const p2 = state.players.player2;
-    
-        // If both joined → spectator view
-        if (p1.occupied && p2.occupied) {
-          area.style.display = 'none';
-          specView.style.display = '';
-          specView.innerHTML = `
-            <h2>Spectator View</h2>
-            <p>Last reveal: ${new Date(state.lastReveal).toLocaleTimeString()}</p>
-            <div>Player 1 picked: <strong>${p1.number ?? '–'}</strong></div>
-            <div>Player 2 picked: <strong>${p2.number ?? '–'}</strong></div>
-          `;
-          return;
-        }
-    
-        // Otherwise show join/buttons for each slot
-        specView.style.display = 'none';
-        area.style.display = '';
-        area.innerHTML = '';
-    
-        ['player1','player2'].forEach(slot => {
-          const player = state.players[slot];
-          if (!player.occupied) {
-            const btn = document.createElement('button');
-            btn.textContent = `Join as ${slot}`;
-            btn.onclick = () =>
-              update(ref(db, `gameState/players/${slot}`), { occupied: true, number: null });
-            area.appendChild(btn);
-    
-          } else {
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = `
-              <strong>${slot}</strong> (joined)
-              <input type="number" min="1" max="10" placeholder="1–10" id="${slot}-input">
-              <button id="${slot}-submit">Submit</button>
-              <button id="${slot}-leave">Leave</button>
-            `;
-            area.appendChild(wrapper);
-    
-            wrapper.querySelector(`#${slot}-submit`).onclick = () => {
-              const val = parseInt(wrapper.querySelector(`#${slot}-input`).value, 10);
-              if (val >= 1 && val <= 10) {
-                update(ref(db, `gameState/players/${slot}`), { number: val });
-              } else {
-                alert('Pick a number between 1 and 10');
-              }
-            };
-            wrapper.querySelector(`#${slot}-leave`).onclick = () => {
-              update(ref(db, `gameState/players/${slot}`), { occupied: false, number: null });
-            };
-          }
-        });
+  <div id="spectator-view" style="display:none;">
+    <!-- Spectator info gets injected here -->
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      update,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+    // ─────── Your Firebase Config ───────
+    const firebaseConfig = {
+      apiKey: "AIzaSyBIc5b9U1ZuDVUcP8YtNrTTsMk67Uiapf4",
+      authDomain: "of1-90bc8.firebaseapp.com",
+      databaseURL: "https://of1-90bc8-default-rtdb.europe-west1.firebasedatabase.app",  // ← ADDED
+      projectId: "of1-90bc8",
+      storageBucket: "of1-90bc8.firebasestorage.app",
+      messagingSenderId: "964181896354",
+      appId: "1:964181896354:web:62b7fee3d4ce51f1e5bbfb",
+      measurementId: "G-HFGY9RTG59"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app);
+
+    // DOM references
+    const area     = document.getElementById('game-area');
+    const specView = document.getElementById('spectator-view');
+
+    // Render UI based on current state
+    function render(state) {
+      const p1 = state.players.player1;
+      const p2 = state.players.player2;
+
+      // Spectator view when both slots are taken
+      if (p1.occupied && p2.occupied) {
+        area.style.display = 'none';
+        specView.style.display = '';
+        specView.innerHTML = `
+          <h2>Spectator View</h2>
+          <p>Last reveal: ${new Date(state.lastReveal).toLocaleTimeString()}</p>
+          <div>Player 1 picked: <strong>${p1.number ?? '–'}</strong></div>
+          <div>Player 2 picked: <strong>${p2.number ?? '–'}</strong></div>
+        `;
+        return;
       }
-    
-      // Listen to gameState (initialize structure if missing)
-      onValue(ref(db, 'gameState'), snap => {
-        const defaultState = {
-          players: {
-            player1: { occupied: false, number: null },
-            player2: { occupied: false, number: null }
-          },
-          lastReveal: Date.now()
-        };
-        const state = snap.val() || defaultState;
-        render(state);
-      });
-    
-      // Manual Reveal button
-      const revealBtn = document.createElement('button');
-      revealBtn.textContent = 'Reveal Now';
-      revealBtn.style.marginTop = '1em';
-      revealBtn.onclick = () =>
-        update(ref(db, 'gameState'), { lastReveal: serverTimestamp() });
-      document.body.appendChild(revealBtn);
-    
-      // (Optional) auto-reveal every 60 seconds:
-      // setInterval(() => revealBtn.click(), 60_000);
-    </script>
 
+      // Otherwise show join/buttons for each slot
+      specView.style.display = 'none';
+      area.style.display = '';
+      area.innerHTML = '';
+
+      ['player1','player2'].forEach(slot => {
+        const player = state.players[slot];
+        if (!player.occupied) {
+          const btn = document.createElement('button');
+          btn.textContent = `Join as ${slot}`;
+          btn.onclick = () =>
+            update(ref(db, `gameState/players/${slot}`), { occupied: true, number: null });
+          area.appendChild(btn);
+
+        } else {
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = `
+            <strong>${slot}</strong> (joined)
+            <input type="number" min="1" max="10" placeholder="1–10" id="${slot}-input">
+            <button id="${slot}-submit">Submit</button>
+            <button id="${slot}-leave">Leave</button>
+          `;
+          area.appendChild(wrapper);
+
+          wrapper.querySelector(`#${slot}-submit`).onclick = () => {
+            const val = parseInt(wrapper.querySelector(`#${slot}-input`).value, 10);
+            if (val >= 1 && val <= 10) {
+              update(ref(db, `gameState/players/${slot}`), { number: val });
+            } else {
+              alert('Pick a number between 1 and 10');
+            }
+          };
+          wrapper.querySelector(`#${slot}-leave`).onclick = () => {
+            update(ref(db, `gameState/players/${slot}`), { occupied: false, number: null });
+          };
+        }
+      });
+    }
+
+    // Listen for realtime updates to gameState (initialize if missing)
+    onValue(ref(db, 'gameState'), snap => {
+      const defaultState = {
+        players: {
+          player1: { occupied: false, number: null },
+          player2: { occupied: false, number: null }
+        },
+        lastReveal: Date.now()
+      };
+      const state = snap.val() || defaultState;
+      render(state);
+    });
+
+    // Manual “Reveal Now” button
+    const revealBtn = document.createElement('button');
+    revealBtn.textContent = 'Reveal Now';
+    revealBtn.style.marginTop = '1em';
+    revealBtn.onclick = () =>
+      update(ref(db, 'gameState'), { lastReveal: serverTimestamp() });
+    document.body.appendChild(revealBtn);
+
+    // (Optional) automated reveal every 60 seconds:
+    // setInterval(() => revealBtn.click(), 60_000);
+  </script>
 </body>
 </html>
+
