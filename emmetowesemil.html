@@ -1,159 +1,244 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Item Owed Tracker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt Tracker</title>
     <style>
-        html, body {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-        }
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
             background-color: #333;
             color: #fff;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            min-height: 100vh;
         }
+        
         header {
             background-color: #9b59b6;
             color: white;
-            padding: 15px;
+            padding: 20px;
             text-align: center;
             font-size: 2em;
             font-weight: bold;
             width: 100%;
             box-sizing: border-box;
         }
+        
         .tracker-container {
-            margin-top: 10px;
-            padding: 20px;
+            margin: 40px 0;
+            padding: 30px;
             background-color: #444;
             border-radius: 10px;
             width: 90%;
-            max-width: 400px;
+            max-width: 500px;
             text-align: center;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
+        
         .debt-display {
-            font-size: 4em;
-            margin: 15px 0;
+            font-size: 3.5em;
+            margin: 20px 0;
             color: #9b59b6;
             font-weight: bold;
         }
-        .info {
-            font-size: 0.9em;
-            color: #bbb;
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid #555;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: bold;
+            color: #aaa;
+        }
+        
+        .info-value {
+            font-weight: bold;
+        }
+        
+        .last-updated {
+            font-size: 0.8em;
+            color: #888;
+            margin-top: 20px;
+        }
+        
+        .spreadsheet-link {
+            display: inline-block;
+            margin: 10px 0 20px;
+            color: #9b59b6;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.3s;
+        }
+        
+        .spreadsheet-link:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 600px) {
+            .tracker-container {
+                width: 85%;
+                padding: 20px;
+            }
+            
+            .debt-display {
+                font-size: 2.5em;
+            }
         }
     </style>
 </head>
 <body>
-    <header>Owed Item Tracker</header>
-
-    <!-- Watches Owed Section -->
+    <header>
+        Debt Tracker
+    </header>
+    
     <div class="tracker-container">
-        <h2>Watches Owed</h2>
-        <div class="debt-display" id="currentDebt">0 watches</div>
-        <div class="info" id="details"></div>
+        <h2>Current Debt</h2>
+        <div class="debt-display" id="currentDebt">DKK 0.00</div>
+        <a href="https://docs.google.com/spreadsheets/d/1wodCnyBtivu7_-J4c6GAEp2VAXCp7_k3Rx9-Bgezy2Y/edit?usp=sharing" target="_blank" class="spreadsheet-link">View calculation spreadsheet</a>
+        
+        <div class="info-row">
+            <span class="info-label">Initial Loan:</span>
+            <span class="info-value" id="initialLoan">DKK 0.00</span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">Total Repaid:</span>
+            <span class="info-value" id="totalRepaid">DKK 0.00</span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">Yearly Interest Rate:</span>
+            <span class="info-value" id="interestRate">0%</span>
+        </div>
+        
+        <div class="info-row">
+            <span class="info-label">Loan Start Date:</span>
+            <span class="info-value" id="startDate">-</span>
+        </div>
+        
+        <div class="last-updated" id="lastUpdated">Last updated: Never</div>
     </div>
-
-    <!-- Chromecast Owed Section -->
-    <div class="tracker-container">
-        <h2>Chromecast Owed</h2>
-        <div class="debt-display" id="chromecastDebt">1 chromecast</div>
-        <div class="info" id="chromecastDetails"></div>
-    </div>
-
+    
     <script>
-        // ───────────────────────────────────────────────────────────────
-        //  Configuration for "Watches Owed" (with 10% monthly interest)
-        // ───────────────────────────────────────────────────────────────
-        const initialWatches = 1;                      // initial loaned watches
-        const monthlyRate    = 0.10;                   // 10% monthly interest
-        const watchStartDate = new Date('2025-05-01T00:00:00');
-
-        // Calculate current watches owed (compounded monthly at 10%)
-        function calculateWatchDebt() {
-            const now = new Date();
-            let monthsElapsed =
-                (now.getFullYear() - watchStartDate.getFullYear()) * 12 +
-                (now.getMonth() - watchStartDate.getMonth());
-            // If today's day-of-month is earlier than the start-day, subtract 1 month
-            if (now.getDate() < watchStartDate.getDate()) {
-                monthsElapsed -= 1;
+        // Initial debt information (will be replaced by API data)
+        const debtInfo = {
+            initialLoan: 0,
+            currentDebt: 0,
+            totalRepaid: 0,
+            interestRate: 0,
+            startDate: "31/12/24"
+        };
+        
+        // Format currency
+        function formatCurrency(amount) {
+            return "DKK " + amount.toFixed(2);
+        }
+        
+        // Format date for display
+        function formatDate(dateStr) {
+            // Convert from DD/MM/YY to a more readable format
+            const parts = dateStr.split('/');
+            if (parts.length !== 3) return dateStr;
+            
+            // Assuming YY format, convert to YYYY
+            let year = parts[2];
+            if (year.length === 2) {
+                year = year < 50 ? "20" + year : "19" + year;
             }
-            monthsElapsed = Math.max(0, monthsElapsed);
-
-            const amount = initialWatches * Math.pow(1 + monthlyRate, monthsElapsed);
-            return { amount, monthsElapsed };
+            
+            const months = [
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            ];
+            
+            return `${parts[0]} ${months[parseInt(parts[1])-1]} ${year}`;
         }
-
-        // Format item count—round up to 2 decimals and append singular/plural
-        function formatItems(count, singular, plural) {
-            const rounded = Math.ceil(count * 100) / 100; // round up to 2 decimals
-            return `${rounded} ${rounded === 1 ? singular : plural}`;
-        }
-
-        // Update the "Watches" UI fields every minute
-        function updateWatchUI() {
-            const { amount, monthsElapsed } = calculateWatchDebt();
-            document.getElementById('currentDebt').textContent =
-                formatItems(amount, 'watch', 'watches');
-            document.getElementById('details').textContent =
-                `Initial loan: ${initialWatches} watch on May 1, 2025 | ` +
-                `Interest: ${(monthlyRate * 100).toFixed(0)}%/month | ` +
-                `${monthsElapsed} month${monthsElapsed === 1 ? '' : 's'} elapsed`;
-        }
-
-        // ───────────────────────────────────────────────────────────────
-        //  Configuration for "Chromecast Owed" (now with 10% monthly interest)
-        // ───────────────────────────────────────────────────────────────
-        const initialChromecasts     = 1;                      // initial loaned chromecasts
-        const chromecastMonthlyRate  = 0.10;                   // 10% monthly interest
-        const chromecastStartDate    = new Date('2025-06-01T00:00:00');
-
-        // Calculate current chromecasts owed (compounded monthly at 10%)
-        function calculateChromecastDebt() {
+        
+        // Update the UI with debt information
+        function updateUI() {
+            document.getElementById("currentDebt").textContent = formatCurrency(debtInfo.currentDebt);
+            document.getElementById("initialLoan").textContent = formatCurrency(debtInfo.initialLoan);
+            document.getElementById("totalRepaid").textContent = formatCurrency(debtInfo.totalRepaid);
+            document.getElementById("interestRate").textContent = debtInfo.interestRate + "%";
+            document.getElementById("startDate").textContent = formatDate(debtInfo.startDate);
+            
             const now = new Date();
-            let monthsElapsed =
-                (now.getFullYear() - chromecastStartDate.getFullYear()) * 12 +
-                (now.getMonth() - chromecastStartDate.getMonth());
-            // If today's day-of-month is earlier than the start-day, subtract 1 month
-            if (now.getDate() < chromecastStartDate.getDate()) {
-                monthsElapsed -= 1;
-            }
-            monthsElapsed = Math.max(0, monthsElapsed);
-
-            const amount = initialChromecasts * Math.pow(1 + chromecastMonthlyRate, monthsElapsed);
-            return { amount, monthsElapsed };
+            document.getElementById("lastUpdated").textContent = `Last updated: ${now.toLocaleString()}`;
         }
-
-        function updateChromecastUI() {
-            const { amount, monthsElapsed } = calculateChromecastDebt();
-            document.getElementById('chromecastDebt').textContent =
-                formatItems(amount, 'chromecast', 'chromecasts');
-            document.getElementById('chromecastDetails').textContent =
-                `Initial loan: ${initialChromecasts} chromecast on June 1, 2025 | ` +
-                `Interest: ${(chromecastMonthlyRate * 100).toFixed(0)}%/month | ` +
-                `${monthsElapsed} month${monthsElapsed === 1 ? '' : 's'} elapsed` +
-                ` | Failure to repay will be dealt with by appropriate parties.`;
+        
+        // In a real implementation, this would fetch data from your API
+         function fetchDebtData() {
+            const apiUrl = "https://script.google.com/macros/s/AKfycbxrESqeWr43FCitCCE7xdJWV8hDJAVzlBRrCAiNKszrXo26kpGRvpraGwz4vdjxWRRlhQ/exec";
+            
+            console.log("Fetching data using JSONP...");
+            
+            // Create a unique callback name based on timestamp to avoid caching issues
+            const callbackName = 'jsonpCallback_' + new Date().getTime();
+            
+            // Define a global callback function that will be called by the JSONP response
+            window[callbackName] = function(data) {
+                console.log("Data received via JSONP:", data);
+                
+                // Update the debtInfo object with the API data
+                debtInfo.initialLoan = data.initialLoan;
+                debtInfo.currentDebt = data.currentDebt;
+                debtInfo.totalRepaid = data.totalRepaid;
+                debtInfo.interestRate = data.interestRate;
+                debtInfo.startDate = data.startDate;
+                
+                console.log("Updated debtInfo:", debtInfo);
+                
+                // Update the UI
+                updateUI();
+                
+                // Clean up - remove the script tag and global function
+                document.body.removeChild(script);
+                delete window[callbackName];
+            };
+            
+            // Create a script element for JSONP approach
+            const script = document.createElement('script');
+            
+            // Add error handling
+            script.onerror = function() {
+                console.error("Error loading JSONP script");
+                updateUI(); // Fall back to default values
+                document.body.removeChild(script);
+                delete window[callbackName];
+            };
+            
+            // Set the source URL with callback parameter
+            script.src = apiUrl + "?callback=" + callbackName;
+            
+            // Add the script to the document to start the request
+            document.body.appendChild(script);
         }
-
-        // ───────────────────────────────────────────────────────────────
-        //  Initialize and keep updating every minute
-        // ───────────────────────────────────────────────────────────────
-        document.addEventListener('DOMContentLoaded', () => {
-            updateWatchUI();
-            updateChromecastUI();
-            // Refresh every minute to update interest
-            setInterval(() => {
-                updateWatchUI();
-                updateChromecastUI();
-            }, 60 * 1000);
+        
+        // Initialize UI
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("Page loaded, initializing...");
+            
+            // First update with default values
+            updateUI();
+            
+            // Then fetch from API
+            fetchDebtData();
+            
+            // Set up automatic refresh every 5 minutes
+            setInterval(fetchDebtData, 5 * 60 * 1000);
         });
     </script>
 </body>
