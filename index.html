@@ -50,62 +50,6 @@
             color: #9b59b6; /* Purple headings */
         }
 
-        /* Chat Interface Styles */
-        #chat-container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #555; /* Dark background for chat */
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        #messages {
-            height: 300px;
-            overflow-y: auto;
-            border: 1px solid #666; /* Dark border */
-            padding: 10px;
-            margin-bottom: 10px;
-            background-color: #333; /* Dark background for messages */
-            border-radius: 5px;
-        }
-
-        .message {
-            margin: 5px 0;
-        }
-
-        .user {
-            text-align: right;
-            color: #9b59b6; /* Purple for user messages */
-        }
-
-        .bot {
-            text-align: left;
-            color: #fff; /* White for bot messages */
-        }
-
-        #user-input {
-            width: calc(100% - 100px);
-            padding: 10px;
-            border: 1px solid #666; /* Dark border */
-            border-radius: 5px;
-            background-color: #444; /* Dark input field */
-            color: white; /* White text */
-        }
-
-        #send-button {
-            padding: 10px 20px;
-            background-color: #9b59b6; /* Purple button */
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        #send-button:hover {
-            background-color: #8e44ad; /* Darker purple on hover */
-        }
-
         .emoji {
             font-size: 1.5em; /* Larger size for emojis */
             vertical-align: middle; /* Align emojis properly with text */
@@ -121,30 +65,15 @@
     </header>
 
     <nav>
-        <a href="#About">Welcome</a>
-        <a href="#Ask">Ask my agent</a>
+        <a href="#about">Welcome</a>
         <a href="#Languages">Languages</a>
-        <a href="#Contact">Contact</a>
+        <a href="#contact">Contact</a>
     </nav>
 
     <section id="about">
         <h2>Welcome</h2>
         <p>Hello and welcome to my website ✨ - A personal project exploring web development and emerging AI technologies 🤖</p>
     </section>
-
-    <section id="Ask">
-        <h2>Curious about my background, experience, interests? 👀 - Ask my agent 💁‍♂️ </h2>
-        <div id="chat-container">
-            <div id="messages"></div>
-            <input id="user-input" type="text" placeholder="Type your message..." />
-            <button id="send-button" onclick="sendMessage()">Send</button>
-            <div style="text-align: center; font-size: 0.85em; color: #aaa; margin-top: 10px;">
-                By using the chat, you agree to our 
-                <a href="https://emilseanskovgaard.com/PrivacyPolicy" style="color: #aaa; text-decoration: underline;">privacy policy</a>.
-            </div>
-        </div>
-    </section>
-
 
     <section id="Languages">
         <h2>Languages 🌍</h2>
@@ -161,52 +90,6 @@
         <p>You can reach me at:</p>
         <p>Email: emil467q@gmail.com 📧</p>
     </section>
-
-    <script>
-        const messagesDiv = document.getElementById('messages');
-        const userInput = document.getElementById('user-input');
-
-        function sendMessage() {
-            const userMessage = userInput.value;
-            if (!userMessage) return;
-
-            // Display user's message
-            appendMessage(userMessage, 'user');
-            userInput.value = '';
-
-            // Call the backend to get a response
-            fetch('https://s235282-github-io.onrender.com/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: userMessage })
-            })
-                .then(response => response.json())
-                .then(data => {
-                    appendMessage(data.response, 'bot');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    appendMessage('Oops! Something went wrong.', 'bot');
-                });
-        }
-
-        function appendMessage(message, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', sender);
-
-            messageDiv.textContent = message;
-            messagesDiv.appendChild(messageDiv);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
-        }
-
-        // Add event listener for Enter key press
-        userInput.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();  // Prevent form submission if inside a form
-                sendMessage();  // Call sendMessage when Enter is pressed
-            }
-        });
-    </script>
 
 </body>
 
