@@ -133,13 +133,13 @@
     </div>
     
     <script>
-        // Updated debt information
+        // Updated debt information reflecting 100 DKK loan from March 2nd
         const debtInfo = {
             initialLoan: 100,
             currentDebt: 100,
             totalRepaid: 0,
             interestRate: 0,
-            startDate: "02/03/26" // 2 days ago relative to March 4, 2026
+            startDate: "02/03/26" 
         };
         
         function formatCurrency(amount) {
@@ -175,11 +175,9 @@
         }
         
         function fetchDebtData() {
-            // Note: In this version, we are hardcoding the data as requested.
-            // If you use the Google Script API, the API data will overwrite these hardcoded values.
             const apiUrl = "https://script.google.com/macros/s/AKfycbxrESqeWr43FCitCCE7xdJWV8hDJAVzlBRrCAiNKszrXo26kpGRvpraGwz4vdjxWRRlhQ/exec";
-            
             const callbackName = 'jsonpCallback_' + new Date().getTime();
+            
             window[callbackName] = function(data) {
                 debtInfo.initialLoan = data.initialLoan;
                 debtInfo.currentDebt = data.currentDebt;
@@ -197,16 +195,17 @@
                 if (script.parentNode) document.body.removeChild(script);
                 delete window[callbackName];
             };
-            
             script.src = apiUrl + "?callback=" + callbackName;
             document.body.appendChild(script);
         }
         
         document.addEventListener("DOMContentLoaded", () => {
             updateUI();
-            // Uncomment the line below if you want the Google Sheets API to override the manual data above
+            
+            // To sync with the spreadsheet later, uncomment the line below:
             // fetchDebtData();
         });
     </script>
 </body>
 </html>
+
