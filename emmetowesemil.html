@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Debt Tracker</title>
+    <title>Debt Tracker: Emmet to Emil</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -101,17 +101,17 @@
 </head>
 <body>
     <header>
-        Debt Tracker
+        Debt Tracker: Emmet &rarr; Emil
     </header>
     
     <div class="tracker-container">
         <h2>Current Debt</h2>
-        <div class="debt-display" id="currentDebt">DKK 0.00</div>
+        <div class="debt-display" id="currentDebt">DKK 100.00</div>
         <a href="https://docs.google.com/spreadsheets/d/1wodCnyBtivu7_-J4c6GAEp2VAXCp7_k3Rx9-Bgezy2Y/edit?usp=sharing" target="_blank" class="spreadsheet-link">View calculation spreadsheet</a>
         
         <div class="info-row">
             <span class="info-label">Initial Loan:</span>
-            <span class="info-value" id="initialLoan">DKK 0.00</span>
+            <span class="info-value" id="initialLoan">DKK 100.00</span>
         </div>
         
         <div class="info-row">
@@ -126,37 +126,33 @@
         
         <div class="info-row">
             <span class="info-label">Loan Start Date:</span>
-            <span class="info-value" id="startDate">-</span>
+            <span class="info-value" id="startDate">2 March 2026</span>
         </div>
         
         <div class="last-updated" id="lastUpdated">Last updated: Never</div>
     </div>
     
     <script>
-        // Initial debt information (will be replaced by API data)
+        // Updated debt information
         const debtInfo = {
-            initialLoan: 0,
-            currentDebt: 0,
+            initialLoan: 100,
+            currentDebt: 100,
             totalRepaid: 0,
             interestRate: 0,
-            startDate: "31/12/24"
+            startDate: "02/03/26" // 2 days ago relative to March 4, 2026
         };
         
-        // Format currency
         function formatCurrency(amount) {
             return "DKK " + amount.toFixed(2);
         }
         
-        // Format date for display
         function formatDate(dateStr) {
-            // Convert from DD/MM/YY to a more readable format
             const parts = dateStr.split('/');
             if (parts.length !== 3) return dateStr;
             
-            // Assuming YY format, convert to YYYY
             let year = parts[2];
             if (year.length === 2) {
-                year = year < 50 ? "20" + year : "19" + year;
+                year = "20" + year;
             }
             
             const months = [
@@ -164,10 +160,9 @@
                 "July", "August", "September", "October", "November", "December"
             ];
             
-            return `${parts[0]} ${months[parseInt(parts[1])-1]} ${year}`;
+            return `${parseInt(parts[0])} ${months[parseInt(parts[1])-1]} ${year}`;
         }
         
-        // Update the UI with debt information
         function updateUI() {
             document.getElementById("currentDebt").textContent = formatCurrency(debtInfo.currentDebt);
             document.getElementById("initialLoan").textContent = formatCurrency(debtInfo.initialLoan);
@@ -179,66 +174,38 @@
             document.getElementById("lastUpdated").textContent = `Last updated: ${now.toLocaleString()}`;
         }
         
-        // In a real implementation, this would fetch data from your API
-         function fetchDebtData() {
+        function fetchDebtData() {
+            // Note: In this version, we are hardcoding the data as requested.
+            // If you use the Google Script API, the API data will overwrite these hardcoded values.
             const apiUrl = "https://script.google.com/macros/s/AKfycbxrESqeWr43FCitCCE7xdJWV8hDJAVzlBRrCAiNKszrXo26kpGRvpraGwz4vdjxWRRlhQ/exec";
             
-            console.log("Fetching data using JSONP...");
-            
-            // Create a unique callback name based on timestamp to avoid caching issues
             const callbackName = 'jsonpCallback_' + new Date().getTime();
-            
-            // Define a global callback function that will be called by the JSONP response
             window[callbackName] = function(data) {
-                console.log("Data received via JSONP:", data);
-                
-                // Update the debtInfo object with the API data
                 debtInfo.initialLoan = data.initialLoan;
                 debtInfo.currentDebt = data.currentDebt;
                 debtInfo.totalRepaid = data.totalRepaid;
                 debtInfo.interestRate = data.interestRate;
                 debtInfo.startDate = data.startDate;
-                
-                console.log("Updated debtInfo:", debtInfo);
-                
-                // Update the UI
                 updateUI();
-                
-                // Clean up - remove the script tag and global function
                 document.body.removeChild(script);
                 delete window[callbackName];
             };
             
-            // Create a script element for JSONP approach
             const script = document.createElement('script');
-            
-            // Add error handling
             script.onerror = function() {
-                console.error("Error loading JSONP script");
-                updateUI(); // Fall back to default values
-                document.body.removeChild(script);
+                updateUI(); 
+                if (script.parentNode) document.body.removeChild(script);
                 delete window[callbackName];
             };
             
-            // Set the source URL with callback parameter
             script.src = apiUrl + "?callback=" + callbackName;
-            
-            // Add the script to the document to start the request
             document.body.appendChild(script);
         }
         
-        // Initialize UI
         document.addEventListener("DOMContentLoaded", () => {
-            console.log("Page loaded, initializing...");
-            
-            // First update with default values
             updateUI();
-            
-            // Then fetch from API
-            fetchDebtData();
-            
-            // Set up automatic refresh every 5 minutes
-            setInterval(fetchDebtData, 5 * 60 * 1000);
+            // Uncomment the line below if you want the Google Sheets API to override the manual data above
+            // fetchDebtData();
         });
     </script>
 </body>
